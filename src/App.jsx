@@ -33,13 +33,13 @@ function App() {
         {/* Logo + app name + tagline */}
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <img
-            src="/rashtrotthana-logo.png"
-            alt="Rashtrotthana Logo"
+            src="/Arivu-logo.png"          // <-- uses logo from public/Arivu-logo.png
+            alt="Arivu Logo"
             style={{ height: 32 }}
           />
           <div>
-            <div style={{ fontWeight: 700, fontSize: "18px" }}>Arivu</div>
-            <div style={{ fontSize: "12px", color: "#6b7280" }}>
+            <div style={{ fontWeight: 700, fontSize: "20px" }}>ಅರಿವು</div>
+            <div style={{ fontSize: "14px", color: "#100dc5ff" }}>
               Process Awareness &amp; Certification
             </div>
           </div>

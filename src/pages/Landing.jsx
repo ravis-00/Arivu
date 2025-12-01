@@ -59,9 +59,9 @@ function Landing() {
         </h1>
         <p
           className="fade-in-up-delay-1"
-          style={{ fontSize: "18px", marginBottom: "4px" }}
+          style={{ fontSize: "18px", marginBottom: "4px", color: "#2610eeff" }}
         >
-          Empowering Growth. Ensuring Excellence.
+          Quality and Systems are every employee's responsibility.
         </p>
         <p
           className="fade-in-up-delay-1"
