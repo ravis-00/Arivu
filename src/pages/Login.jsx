@@ -12,6 +12,7 @@ function Login() {
   const [selectedLocation, setSelectedLocation] = useState("");
   const [employeeName, setEmployeeName] = useState("");
   const [employeeId, setEmployeeId] = useState("");
+  const [consentGiven, setConsentGiven] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -38,9 +39,7 @@ function Login() {
 
   // Unique prakalpas for first dropdown
   const prakalpaOptions = Array.from(
-    new Map(
-      prakalpas.map((p) => [p.prakalpaKey, p]) // dedupe by key
-    ).values()
+    new Map(prakalpas.map((p) => [p.prakalpaKey, p])).values()
   );
 
   // --- Locations for selected prakalpa, split on comma into separate options ---
@@ -66,6 +65,8 @@ function Login() {
     if (!employeeName.trim()) return setError("Please enter your name.");
     if (!employeeId.trim())
       return setError("Please enter Employee ID / Mobile Number.");
+    if (!consentGiven)
+      return setError("Please provide your consent to continue.");
 
     setLoading(true);
 
@@ -209,6 +210,38 @@ function Login() {
             />
           </div>
 
+          {/* Consent checkbox */}
+          <div
+            className="form-group"
+            style={{ marginTop: "8px", marginBottom: "4px" }}
+          >
+            <label
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: "8px",
+                cursor: "pointer",
+                fontSize: "13px",
+                color: "#4b5563",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={consentGiven}
+                onChange={(e) => setConsentGiven(e.target.checked)}
+                style={{ marginTop: "3px" }}
+              />
+              <span>
+                I confirm that I am an authorized staff member and consent to
+                the collection and use of my details (name, school / location,
+                employee ID and mobile number) for verification,
+                administration and issuing the Process Awareness Certificate in
+                line with Rashtrotthana Parishat&apos;s internal data protection
+                practices.
+              </span>
+            </label>
+          </div>
+
           {/* Buttons */}
           <div className="button-row">
             <button
@@ -227,6 +260,20 @@ function Login() {
               Dashboard
             </button>
           </div>
+
+          {/* Short privacy note under buttons */}
+          <p
+            style={{
+              marginTop: "16px",
+              fontSize: "12px",
+              color: "#6b7280",
+              textAlign: "center",
+              lineHeight: 1.5,
+            }}
+          >
+            Your information is stored securely and is not shared with external
+            organizations outside Rashtrotthana Parishat.
+          </p>
         </form>
       </div>
     </div>

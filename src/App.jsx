@@ -39,7 +39,7 @@ function App() {
           />
           <div>
             <div style={{ fontWeight: 700, fontSize: "20px" }}>ಅರಿವು</div>
-            <div style={{ fontSize: "14px", color: "#100dc5ff" }}>
+            <div style={{ fontSize: "12px", color: "#100dc5ff" }}>
               Process Awareness &amp; Certification
             </div>
           </div>
