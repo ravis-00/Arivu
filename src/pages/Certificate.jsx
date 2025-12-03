@@ -45,8 +45,8 @@ function Certificate() {
       <div className="certificate-page">
         <div className="certificate-wrapper fade-in-up">
           <p style={{ fontSize: "14px", color: "#4b5563" }}>
-            No certificate data available. Please complete the quiz and view your
-            result before downloading the certificate.
+            No certificate data available. Please complete the quiz and view
+            your result before downloading the certificate.
           </p>
         </div>
       </div>
@@ -59,22 +59,17 @@ function Certificate() {
     employeeId,
     prakalpaName,
     location,
-    score,
-    totalQuestions,
-    percentage,
-    // optional: if later you add this field from backend / result page
+    // score,
+    // totalQuestions,
+    // percentage,
+    // 👇 ideally this comes from the Results sheet (Timestamp column)
     timestamp,
   } = result;
 
-  const correctCount =
-    typeof score === "number" ? score : Number(score || 0);
-  const total =
-    typeof totalQuestions === "number"
-      ? totalQuestions
-      : Number(totalQuestions || 0);
-
-  // If we don't have a stored timestamp, just show today's date
-  const passedDateText = formatDate(timestamp || new Date());
+  // Use timestamp (from sheet) if present; otherwise fallback to today
+  const passedDateText = timestamp
+    ? formatDate(timestamp)
+    : formatDate(new Date());
 
   const displayName = employeeName || "Employee Name";
   const displayId = employeeId || "Employee ID / Mobile";
@@ -133,20 +128,16 @@ function Certificate() {
               Unit / Location: <span>{displayLocation}</span>
             </p>
 
-            {/* Body text */}
+            {/* Body text – score removed */}
             <p className="certificate-body">
               has successfully completed the{" "}
               <strong>Arivu – Process Awareness Test</strong> conducted by
-              Rashtrotthana Parishat, securing a score of{" "}
-              <strong>
-                {percentage}% ({correctCount} out of {total} questions correct)
-              </strong>
-              . This certificate is issued in recognition of the staff member&apos;s
-              understanding of key organizational processes and
-              responsibilities.
+              Rashtrotthana Parishat. This certificate is issued in recognition
+              of the staff member&apos;s understanding of key organizational
+              processes and responsibilities.
             </p>
 
-            {/* Date & footer */}
+            {/* Date & system-generated note */}
             <div className="certificate-footer-row">
               <div className="certificate-footer-block">
                 <div className="certificate-footer-label">Date of Test</div>
@@ -156,12 +147,15 @@ function Certificate() {
               </div>
 
               <div className="certificate-footer-block">
-                <div className="certificate-footer-label">
-                  Authorized Signatory
+                <div
+                  className="certificate-footer-label"
+                  style={{ visibility: "hidden" }}
+                >
+                  {/* kept for spacing alignment */}
+                  &nbsp;
                 </div>
-                <div className="certificate-footer-line" />
                 <div className="certificate-footer-role">
-                  Head – Quality &amp; Systems
+                  This is a system-generated e-certificate.
                 </div>
               </div>
             </div>
