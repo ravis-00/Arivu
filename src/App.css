@@ -1,19 +1,24 @@
+/* Make the React root fill the viewport and remove old Vite constraints */
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  margin: 0;
+  padding: 0;
+  max-width: none;       /* allow full-width layout */
+  text-align: initial;   /* don't force everything to be centered */
+  min-height: 100vh;
 }
 
+/* Old Vite demo styles kept (harmless) in case anything still uses .logo/.card */
 .logo {
   height: 6em;
   padding: 1.5em;
   will-change: filter;
   transition: filter 300ms;
 }
+
 .logo:hover {
   filter: drop-shadow(0 0 2em #646cffaa);
 }
+
 .logo.react:hover {
   filter: drop-shadow(0 0 2em #61dafbaa);
 }
