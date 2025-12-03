@@ -212,32 +212,34 @@ function Login() {
 
           {/* Consent checkbox */}
           <div
-            className="form-group"
-            style={{ marginTop: "8px", marginBottom: "4px" }}
+            style={{
+              marginTop: "6px",
+              marginBottom: "6px",
+              textAlign: "left",
+              paddingLeft: "4px", // small indent to visually line up with inputs
+            }}
           >
             <label
               style={{
                 display: "flex",
                 alignItems: "flex-start",
-                gap: "8px",
-                cursor: "pointer",
-                fontSize: "13px",
+                gap: "6px",
+                fontSize: "12px",
                 color: "#4b5563",
+                lineHeight: 1.4,
+                cursor: "pointer",
+                maxWidth: "100%",
               }}
             >
               <input
                 type="checkbox"
                 checked={consentGiven}
                 onChange={(e) => setConsentGiven(e.target.checked)}
-                style={{ marginTop: "3px" }}
+                style={{ marginTop: "2px" }}
               />
               <span>
-                I confirm that I am an authorized staff member and consent to
-                the collection and use of my details (name, school / location,
-                employee ID and mobile number) for verification,
-                administration and issuing the Process Awareness Certificate in
-                line with Rashtrotthana Parishat&apos;s internal data protection
-                practices.
+                I confirm that I am a staff member and consent to the use of my
+                details for verification and certificate generation.
               </span>
             </label>
           </div>
