@@ -1,6 +1,6 @@
 // src/pages/Login.jsx
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchPrakalpas, fetchQuestions } from "../api";
 
@@ -16,16 +16,43 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const userType = localStorage.getItem("userType") || "GENERAL";
+  const isRVKUser = userType === "RVK";
+
   // ---------------- Load Prakalpa + Location list ----------------
   useEffect(() => {
     async function load() {
       try {
         setError("");
+
         const res = await fetchPrakalpas();
         console.log("Prakalpas from API:", res);
 
         if (res.status === "ok" && Array.isArray(res.prakalpas)) {
-          setPrakalpas(res.prakalpas);
+          const allPrakalpas = res.prakalpas;
+
+          if (isRVKUser) {
+            const rvkOnly = allPrakalpas.filter(
+              (p) => String(p.prakalpaKey || "").toUpperCase() === "RVK"
+            );
+
+            setPrakalpas(rvkOnly);
+
+            if (rvkOnly.length > 0) {
+              setSelectedPrakalpa(rvkOnly[0].prakalpaKey);
+              setSelectedLocation("");
+            } else {
+              setError("RVK configuration is not available.");
+            }
+          } else {
+            const generalOnly = allPrakalpas.filter(
+              (p) => String(p.prakalpaKey || "").toUpperCase() !== "RVK"
+            );
+
+            setPrakalpas(generalOnly);
+            setSelectedPrakalpa("");
+            setSelectedLocation("");
+          }
         } else {
           setError("Unable to load Prakalpa list.");
         }
@@ -34,25 +61,34 @@ function Login() {
         setError("Error while loading Prakalpa list.");
       }
     }
+
     load();
-  }, []);
+  }, [isRVKUser]);
 
   // Unique prakalpas for first dropdown
-  const prakalpaOptions = Array.from(
-    new Map(prakalpas.map((p) => [p.prakalpaKey, p])).values()
-  );
+  const prakalpaOptions = useMemo(() => {
+    return Array.from(
+      new Map(prakalpas.map((p) => [p.prakalpaKey, p])).values()
+    );
+  }, [prakalpas]);
 
-  // --- Locations for selected prakalpa, split on comma into separate options ---
-  let locationOptions = [];
-  if (selectedPrakalpa) {
-    const p = prakalpas.find((p) => p.prakalpaKey === selectedPrakalpa);
-    if (p && p.schoolLocation) {
-      locationOptions = p.schoolLocation
-        .split(",")
-        .map((loc) => loc.trim())
-        .filter(Boolean); // removes empty strings
-    }
-  }
+  // Locations for selected prakalpa, split on comma into separate options
+  const locationOptions = useMemo(() => {
+    if (!selectedPrakalpa) return [];
+
+    const p = prakalpas.find((item) => item.prakalpaKey === selectedPrakalpa);
+
+    if (!p || !p.schoolLocation) return [];
+
+    return p.schoolLocation
+      .split(",")
+      .map((loc) => loc.trim())
+      .filter(Boolean);
+  }, [selectedPrakalpa, prakalpas]);
+
+  const selectedPrakalpaObject = prakalpaOptions.find(
+    (p) => p.prakalpaKey === selectedPrakalpa
+  );
 
   // ---------------- Handlers ----------------
 
@@ -60,21 +96,27 @@ function Login() {
     e.preventDefault();
     setError("");
 
-    if (!selectedPrakalpa) return setError("Please select a Prakalpa.");
+    if (!selectedPrakalpa) {
+      return setError(
+        isRVKUser
+          ? "RVK CBSE is not configured. Please contact administrator."
+          : "Please select a Prakalpa."
+      );
+    }
+
     if (!selectedLocation) return setError("Please select School / Location.");
     if (!employeeName.trim()) return setError("Please enter your name.");
-    if (!employeeId.trim())
+    if (!employeeId.trim()) {
       return setError("Please enter Employee ID / Mobile Number.");
-    if (!consentGiven)
+    }
+    if (!consentGiven) {
       return setError("Please provide your consent to continue.");
+    }
 
     setLoading(true);
 
     try {
-      // The full prakalpa object selected by the user
-      const prakalpa = prakalpaOptions.find(
-        (p) => p.prakalpaKey === selectedPrakalpa
-      );
+      const prakalpa = selectedPrakalpaObject;
 
       const res = await fetchQuestions(
         selectedPrakalpa,
@@ -85,6 +127,7 @@ function Login() {
       // Already passed case
       if (res.status === "alreadyPassed") {
         const result = res.result;
+
         sessionStorage.setItem(
           "arivuLastResult",
           JSON.stringify({
@@ -97,13 +140,13 @@ function Login() {
             fromBackend: true,
           })
         );
+
         navigate("/result");
         return;
       }
 
       // New quiz
       if (res.status === "ok" && Array.isArray(res.questions)) {
-        // Get duration from Prakalpa sheet; fallback only if missing/invalid
         const mins = Number(prakalpa?.durationMinutes);
         const durationMinutes =
           Number.isFinite(mins) && mins > 0 ? mins : 30;
@@ -114,8 +157,8 @@ function Login() {
           location: selectedLocation,
           employeeName,
           employeeId,
-          // 👇 used by Quiz page for the timer
           durationMinutes,
+          userType,
         };
 
         sessionStorage.setItem("arivuSession", JSON.stringify(quizContext));
@@ -149,20 +192,50 @@ function Login() {
         <h2>Login</h2>
         <p>Please enter your details to start the Process Awareness Test.</p>
 
+        {isRVKUser && (
+          <div
+            style={{
+              background: "#fff7ed",
+              border: "1px solid #fed7aa",
+              color: "#9a3412",
+              padding: "10px 12px",
+              borderRadius: "8px",
+              fontSize: "13px",
+              marginBottom: "14px",
+            }}
+          >
+            RVK staff verification completed. Please select your RVK school and
+            continue.
+          </div>
+        )}
+
         {error && <div className="error-banner">{error}</div>}
 
         <form onSubmit={handleStartTest}>
           {/* Prakalpa */}
           <div className="form-group">
-            <label>Prakalpa</label>
+            <label>{isRVKUser ? "Programme" : "Prakalpa"}</label>
             <select
               value={selectedPrakalpa}
+              disabled={isRVKUser}
               onChange={(e) => {
                 setSelectedPrakalpa(e.target.value);
                 setSelectedLocation("");
               }}
+              style={
+                isRVKUser
+                  ? {
+                      backgroundColor: "#f3f4f6",
+                      color: "#374151",
+                      cursor: "not-allowed",
+                    }
+                  : {}
+              }
             >
-              <option value="">Select Prakalpa</option>
+              <option value="">
+                {isRVKUser ? "RVK CBSE" : "Select Prakalpa"}
+              </option>
+
               {prakalpaOptions.map((p) => (
                 <option key={p.prakalpaKey} value={p.prakalpaKey}>
                   {p.prakalpaName}
@@ -173,13 +246,16 @@ function Login() {
 
           {/* School / Location */}
           <div className="form-group">
-            <label>School / Location</label>
+            <label>{isRVKUser ? "RVK School" : "School / Location"}</label>
             <select
               value={selectedLocation}
               onChange={(e) => setSelectedLocation(e.target.value)}
               disabled={!selectedPrakalpa}
             >
-              <option value="">Select School / Location</option>
+              <option value="">
+                {isRVKUser ? "Select RVK School" : "Select School / Location"}
+              </option>
+
               {locationOptions.map((loc) => (
                 <option key={loc} value={loc}>
                   {loc}
@@ -216,7 +292,7 @@ function Login() {
               marginTop: "6px",
               marginBottom: "6px",
               textAlign: "left",
-              paddingLeft: "4px", // small indent to visually line up with inputs
+              paddingLeft: "4px",
             }}
           >
             <label
@@ -263,7 +339,6 @@ function Login() {
             </button>
           </div>
 
-          {/* Short privacy note under buttons */}
           <p
             style={{
               marginTop: "16px",

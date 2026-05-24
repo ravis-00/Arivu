@@ -8,6 +8,7 @@ import Quiz from "./pages/Quiz.jsx";
 import Result from "./pages/Result.jsx";
 import Certificate from "./pages/Certificate.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
+import VerifyCertificate from "./pages/VerifyCertificate.jsx";
 
 /** Top bar shown on all pages */
 function Topbar() {
@@ -239,6 +240,7 @@ function App() {
           <Route path="/quiz" element={<Quiz />} />
           <Route path="/result" element={<Result />} />
           <Route path="/certificate" element={<Certificate />} />
+          <Route path="/verify" element={<VerifyCertificate />} />
 
           {/* Summary dashboard */}
           <Route path="/dashboard" element={<Dashboard />} />

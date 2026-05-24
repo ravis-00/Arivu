@@ -1,11 +1,15 @@
 // src/pages/Certificate.jsx
 import { useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
+import QRCode from "react-qr-code";
+import { useEffect, useMemo, useState } from "react";
 
 function formatDate(value) {
   if (!value) return "—";
+
   const d = value instanceof Date ? value : new Date(value);
+
   if (isNaN(d.getTime())) return "—";
+
   return d.toLocaleDateString("en-IN", {
     year: "numeric",
     month: "long",
@@ -13,15 +17,66 @@ function formatDate(value) {
   });
 }
 
+function getProgrammeTitle(prakalpaName) {
+  const name = String(prakalpaName || "").toUpperCase();
+
+  if (name.includes("RVK")) {
+    return "RVK CBSE Process Awareness & Certification";
+  }
+
+  if (name.includes("STATE BOARD")) {
+    return "RV State Board Process Awareness & Certification";
+  }
+
+  if (name.includes("BLOOD")) {
+    return "Blood Centre Process Awareness & Certification";
+  }
+
+  if (name.includes("SEVA")) {
+    return "Seva Process Awareness & Certification";
+  }
+
+  if (name.includes("YOGA") || name.includes("RYSRI")) {
+    return "Yoga Process Awareness & Certification";
+  }
+
+  return "Arivu – Process Awareness & Certification";
+}
+
+function getAssessmentTitle(programmeTitle) {
+  return String(programmeTitle || "Arivu – Process Awareness & Certification")
+    .replace("Process Awareness & Certification", "Process Awareness Assessment");
+}
+
+function createReadableCertificateId(result) {
+  if (!result) return "—";
+
+  const existing = String(result.certificateNumber || "").trim();
+
+  if (existing && !/^\s*ARIVU-[A-Z]+-\d{12,}\s*$/i.test(existing)) {
+    return existing;
+  }
+
+  const prakalpaCode = String(result.prakalpaCode || "GEN").toUpperCase();
+  const employeeId = String(result.employeeId || "EMP")
+    .replace(/\s+/g, "")
+    .slice(-6);
+
+  const rawDate = result.timestamp ? new Date(result.timestamp) : new Date();
+  const year = isNaN(rawDate.getTime())
+    ? new Date().getFullYear()
+    : rawDate.getFullYear();
+
+  return `ARV-${prakalpaCode}-${year}-${employeeId}`;
+}
+
 function Certificate() {
   const locationHook = useLocation();
   const [result, setResult] = useState(null);
 
   useEffect(() => {
-    // 1) Try to get result from navigation state (if we navigated with state)
     let res = locationHook.state || null;
 
-    // 2) Fallback to sessionStorage where Result/Login save it
     if (!res) {
       try {
         const stored = sessionStorage.getItem("arivuLastResult");
@@ -40,6 +95,10 @@ function Certificate() {
     window.print();
   };
 
+  const certificateId = useMemo(() => {
+    return createReadableCertificateId(result);
+  }, [result]);
+
   if (!result) {
     return (
       <div className="certificate-page">
@@ -53,33 +112,28 @@ function Certificate() {
     );
   }
 
-  // Match the actual shape we store in arivuLastResult
-  const {
-    employeeName,
-    employeeId,
-    prakalpaName,
-    location,
-    // score,
-    // totalQuestions,
-    // percentage,
-    // 👇 ideally this comes from the Results sheet (Timestamp column)
-    timestamp,
-  } = result;
+  const { employeeName, employeeId, prakalpaName, location, timestamp } =
+    result;
 
-  // Use timestamp (from sheet) if present; otherwise fallback to today
   const passedDateText = timestamp
     ? formatDate(timestamp)
     : formatDate(new Date());
 
   const displayName = employeeName || "Employee Name";
-  const displayId = employeeId || "Employee ID / Mobile";
-  const displayPrakalpa = prakalpaName || "Prakalpa / Department";
+  const displayId = employeeId || "Employee ID";
+  const displayPrakalpa = prakalpaName || "Prakalpa";
   const displayLocation = location || "Unit / Location";
 
+  const programmeTitle = getProgrammeTitle(displayPrakalpa);
+  const assessmentTitle = getAssessmentTitle(programmeTitle);
+  const verificationId = result?.certificateNumber || certificateId;
+
+const verificationUrl = `https://arivu-process-awareness.netlify.app/verify?id=${encodeURIComponent(
+  verificationId
+)}`;
   return (
     <div className="certificate-page">
       <div className="certificate-wrapper fade-in-up">
-        {/* Toolbar with Print button (hidden in print view) */}
         <div className="certificate-toolbar">
           <button
             type="button"
@@ -90,77 +144,95 @@ function Certificate() {
           </button>
         </div>
 
-        {/* Main certificate frame */}
         <div className="certificate-frame">
           <div className="certificate-inner">
-            {/* Logo + heading */}
             <div className="certificate-header">
               <img
                 src="/rashtrotthana-logo.png"
                 alt="Rashtrotthana Logo"
                 className="certificate-logo"
               />
+
               <div className="certificate-heading-text">
                 <div className="certificate-org-name">
                   Rashtrotthana Parishat
                 </div>
-                <div className="certificate-app-name">
-                  Arivu – Process Awareness &amp; Certification
-                </div>
+                <div className="certificate-app-name">{programmeTitle}</div>
               </div>
             </div>
 
-            {/* Certificate title */}
             <h1 className="certificate-title">Certificate of Completion</h1>
 
-            {/* Intro line */}
             <p className="certificate-line">This is to certify that</p>
 
-            {/* Name */}
             <div className="certificate-name">{displayName}</div>
+            <div className="certificate-name-underline" />
 
-            {/* Additional details */}
             <p className="certificate-details">
-              Employee ID / Mobile: <span>{displayId}</span>
+              Employee ID: <span>{displayId}</span>
               <br />
-              Prakalpa / Department: <span>{displayPrakalpa}</span>
+              Prakalpa: <span>{displayPrakalpa}</span>
               <br />
               Unit / Location: <span>{displayLocation}</span>
             </p>
 
-            {/* Body text – score removed */}
             <p className="certificate-body">
               has successfully completed the{" "}
-              <strong>Arivu – Process Awareness Test</strong> conducted by
-              Rashtrotthana Parishat. This certificate is issued in recognition
-              of the staff member&apos;s understanding of key organizational
-              processes and responsibilities.
+              <strong>{assessmentTitle}</strong>. This certificate is awarded in
+              recognition of the staff member&apos;s demonstrated understanding
+              of organizational processes, SOPs, responsibilities, applicable
+              standards, and workplace systems.
             </p>
 
-            {/* Date & system-generated note */}
-            <div className="certificate-footer-row">
-              <div className="certificate-footer-block">
-                <div className="certificate-footer-label">Date of Test</div>
-                <div className="certificate-footer-value">
-                  {passedDateText}
+            <div className="certificate-highlight-row">
+              <div className="certificate-highlight-box">
+                <div className="certificate-footer-label">Status</div>
+                <div className="certificate-pass-text">
+                  Successfully Completed
                 </div>
               </div>
 
-              <div className="certificate-footer-block">
-                <div
-                  className="certificate-footer-label"
-                  style={{ visibility: "hidden" }}
-                >
-                  {/* kept for spacing alignment */}
-                  &nbsp;
-                </div>
-                <div className="certificate-footer-role">
-                  This is a system-generated e-certificate.
-                </div>
+              <div className="certificate-highlight-box">
+                <div className="certificate-footer-label">Certificate ID</div>
+                <div className="certificate-footer-value">{certificateId}</div>
               </div>
             </div>
 
-            {/* Disclaimer at bottom */}
+            <div className="certificate-footer-row">
+              <div className="certificate-footer-block">
+                <div className="certificate-footer-label">Date of Test</div>
+                <div className="certificate-footer-value">{passedDateText}</div>
+              </div>
+
+              <div className="certificate-footer-block certificate-issued-by">
+                <div className="certificate-footer-label">Issued by</div>
+                <div className="certificate-footer-value">
+                  Quality &amp; Systems Prakalpa
+                </div>
+                <div className="certificate-footer-role">
+                  Rashtrotthana Parishat
+                </div>
+              </div>
+
+              <div className="certificate-footer-block">
+                <div className="certificate-footer-label">Mode</div>
+                <div className="certificate-footer-role">
+                  System-generated e-certificate
+                </div>
+                <div className="certificate-qr-section">
+  <QRCode value={verificationUrl} size={58} />
+  <div className="certificate-qr-text">
+    Scan to Verify
+  </div>
+</div>
+              </div>
+            </div>
+
+          <div className="certificate-qr-section">
+
+  
+
+</div>
             <p className="certificate-disclaimer">
               This certificate is issued for internal process awareness and
               capacity-building within Rashtrotthana Parishat. It does not

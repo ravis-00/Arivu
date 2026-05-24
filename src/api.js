@@ -95,3 +95,11 @@ export async function fetchCertificate(prakalpaCode, employeeId) {
     employeeId,
   });
 }
+
+// Verify certificate by Certificate ID
+export async function verifyCertificate(certificateId) {
+  return getJson({
+    action: "verifyCertificate",
+    certificateId,
+  });
+}

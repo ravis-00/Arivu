@@ -6,40 +6,50 @@ import Toast from "../components/Toast";
 function Landing() {
   const navigate = useNavigate();
 
-  // toast message for errors
   const [toastMsg, setToastMsg] = useState("");
 
-  // two answers
-  const [answer1, setAnswer1] = useState("");
-  const [answer2, setAnswer2] = useState("");
-
-  // correct values
-  const CORRECT_ANSWER_1 = "mission";
-  const CORRECT_ANSWER_2 = "vision";
+  const [isRVKStaff, setIsRVKStaff] = useState("");
+  const [visionAnswer, setVisionAnswer] = useState("");
+  const [missionAnswer, setMissionAnswer] = useState("");
+  const [rvkQ3Answer, setRvkQ3Answer] = useState("");
+  const [rvkQ4Answer, setRvkQ4Answer] = useState("");
 
   const handleStart = (e) => {
     e.preventDefault();
 
-    if (!answer1 || !answer2) {
-      setToastMsg("Please answer both verification questions.");
+    if (!isRVKStaff || !visionAnswer || !missionAnswer) {
+      setToastMsg("Please answer all required verification questions.");
       return;
     }
 
-    if (answer1 !== CORRECT_ANSWER_1 || answer2 !== CORRECT_ANSWER_2) {
+    if (visionAnswer !== "vision" || missionAnswer !== "mission") {
       setToastMsg(
         "The answers are not correct. If you are a Rashtrotthana staff member, please check with your unit head."
       );
       return;
     }
 
+    if (isRVKStaff === "YES") {
+      if (!rvkQ3Answer || !rvkQ4Answer) {
+        setToastMsg("Please answer the RVK verification questions.");
+        return;
+      }
+
+      if (rvkQ3Answer !== "holistic" || rvkQ4Answer !== "bharatiya_values") {
+        setToastMsg(
+          "The RVK verification answers are not correct. Please check and try again."
+        );
+        return;
+      }
+    }
+
+    localStorage.setItem("userType", isRVKStaff === "YES" ? "RVK" : "GENERAL");
     navigate("/login");
   };
 
   return (
     <>
-      {/* Outer wrapper uses the new gradient background from index.css (.hero-page) */}
       <div className="hero-page">
-        {/* Inner content stays constrained and centered like before */}
         <div
           style={{
             maxWidth: "900px",
@@ -47,7 +57,6 @@ function Landing() {
             textAlign: "center",
           }}
         >
-          {/* Logo */}
           <img
             src="/rashtrotthana-logo.png"
             alt="Rashtrotthana Logo"
@@ -55,28 +64,36 @@ function Landing() {
             style={{ height: 140, marginBottom: 16 }}
           />
 
-          {/* Title */}
           <h1
             className="fade-in-up-delay-1"
             style={{ fontSize: "32px", marginBottom: "8px" }}
           >
             Rashtrotthana Parishat
           </h1>
+
           <p
             className="fade-in-up-delay-1"
-            style={{ fontSize: "18px", marginBottom: "4px", color: "#2610eeff" }}
+            style={{
+              fontSize: "18px",
+              marginBottom: "4px",
+              color: "#2610eeff",
+            }}
           >
             Quality and Systems are every employee&apos;s responsibility.
           </p>
+
           <p
             className="fade-in-up-delay-1"
-            style={{ fontSize: "15px", marginBottom: "32px", color: "#4b5563" }}
+            style={{
+              fontSize: "15px",
+              marginBottom: "32px",
+              color: "#4b5563",
+            }}
           >
             Welcome to the Arivu – Process Awareness &amp; Certification
             Application.
           </p>
 
-          {/* Feature Cards – now only 2 cards */}
           <div
             className="fade-in-up-delay-2"
             style={{
@@ -88,7 +105,6 @@ function Landing() {
               marginBottom: "32px",
             }}
           >
-            {/* Card 1 – Process Awareness & Certification */}
             <div
               className="feature-card"
               style={{
@@ -110,13 +126,7 @@ function Landing() {
                 />
               </div>
 
-              <h3
-                style={{
-                  marginBottom: "10px",
-                  fontWeight: 600,
-                  textAlign: "center",
-                }}
-              >
+              <h3 style={{ marginBottom: "10px", fontWeight: 600 }}>
                 Process Awareness &amp; Certification
               </h3>
 
@@ -125,16 +135,14 @@ function Landing() {
                   fontSize: "14px",
                   color: "#4b5563",
                   lineHeight: 1.6,
-                  textAlign: "left",
+                  textAlign: "justify",
                 }}
               >
-                Helps employees understand their key responsibilities, SOPs and
-                organizational processes. Staff who complete the test receive a
-                process awareness certification.
+                Helps employees understand their key responsibilities, SOPs, organizational processes, applicable standards, 
+                and the tools and applications used in their work. Staff members who successfully complete the assessment receive a Process Awareness Certification.
               </p>
             </div>
 
-            {/* Card 2 – Continuous Improvement */}
             <div
               className="feature-card"
               style={{
@@ -156,13 +164,7 @@ function Landing() {
                 />
               </div>
 
-              <h3
-                style={{
-                  marginBottom: "10px",
-                  fontWeight: 600,
-                  textAlign: "center",
-                }}
-              >
+              <h3 style={{ marginBottom: "10px", fontWeight: 600 }}>
                 Continuous Improvement
               </h3>
 
@@ -171,7 +173,7 @@ function Landing() {
                   fontSize: "14px",
                   color: "#4b5563",
                   lineHeight: 1.6,
-                  textAlign: "left",
+                  textAlign: "justify",
                 }}
               >
                 Helps improve internal quality systems and identify training
@@ -180,12 +182,11 @@ function Landing() {
             </div>
           </div>
 
-          {/* Verification Section */}
           <form
             onSubmit={handleStart}
             className="fade-in-up-delay-2"
             style={{
-              maxWidth: "500px",
+              maxWidth: "560px",
               margin: "0 auto",
               padding: "24px",
               borderRadius: "12px",
@@ -211,47 +212,46 @@ function Landing() {
                 marginBottom: "16px",
               }}
             >
-              Please answer both questions to confirm you are an authorized staff
-              member.
+              Please answer all required questions to confirm you are an
+              authorized staff member.
             </p>
 
-            {/* Question 1 */}
             <label
               style={{
                 display: "block",
-                marginBottom: "6px",
+                marginBottom: "8px",
                 fontWeight: "600",
               }}
             >
-              Mission
+              Are you working for any of our Rashtrotthana Vidya Kendras?
             </label>
-            <select
-              value={answer1}
-              onChange={(e) => setAnswer1(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "10px",
-                borderRadius: "6px",
-                border: "1px solid #d1d5db",
-                marginBottom: "20px",
-              }}
-            >
-              <option value="">Select the correct answer</option>
-              <option value="mission">
-                To create models of excellence in all activities and to
-                encourage their widespread adaptation.
-              </option>
-              <option value="wrong1">
-                To support communities by promoting sustainable development and
-                providing opportunities for lifelong learning.
-              </option>
-              <option value="wrong2">
-                To deliver quality services through innovation and teamwork while
-                ensuring customer satisfaction.
-              </option>
-            </select>
 
-            {/* Question 2 */}
+            <div style={{ display: "flex", gap: "20px", marginBottom: "20px" }}>
+              <label>
+                <input
+                  type="radio"
+                  name="isRVKStaff"
+                  value="YES"
+                  checked={isRVKStaff === "YES"}
+                  onChange={(e) => setIsRVKStaff(e.target.value)}
+                  style={{ marginRight: "6px" }}
+                />
+                Yes
+              </label>
+
+              <label>
+                <input
+                  type="radio"
+                  name="isRVKStaff"
+                  value="NO"
+                  checked={isRVKStaff === "NO"}
+                  onChange={(e) => setIsRVKStaff(e.target.value)}
+                  style={{ marginRight: "6px" }}
+                />
+                No
+              </label>
+            </div>
+
             <label
               style={{
                 display: "block",
@@ -262,8 +262,8 @@ function Landing() {
               Vision
             </label>
             <select
-              value={answer2}
-              onChange={(e) => setAnswer2(e.target.value)}
+              value={visionAnswer}
+              onChange={(e) => setVisionAnswer(e.target.value)}
               style={{
                 width: "100%",
                 padding: "10px",
@@ -276,20 +276,115 @@ function Landing() {
               <option value="vision">
                 Swastha–Susthira Samajanirmanam is our vision.
               </option>
-              <option value="wrong3">
-                Our vision is to compete in market.
-              </option>
-              <option value="wrong4">
+              <option value="wrong1">Our vision is to compete in market.</option>
+              <option value="wrong2">
                 Our vision is to create wealthy society.
               </option>
             </select>
 
-            {/* Orange Start Button */}
+            <label
+              style={{
+                display: "block",
+                marginBottom: "6px",
+                fontWeight: "600",
+              }}
+            >
+              Mission
+            </label>
+            <select
+              value={missionAnswer}
+              onChange={(e) => setMissionAnswer(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "10px",
+                borderRadius: "6px",
+                border: "1px solid #d1d5db",
+                marginBottom: "20px",
+              }}
+            >
+              <option value="">Select the correct answer</option>
+              <option value="mission">
+                To create models of excellence in all activities and to encourage
+                their widespread adaptation.
+              </option>
+              <option value="wrong3">
+                To support communities by promoting sustainable development and
+                lifelong learning.
+              </option>
+              <option value="wrong4">
+                To deliver quality services through innovation and teamwork only.
+              </option>
+            </select>
+
+            {isRVKStaff === "YES" && (
+              <>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "6px",
+                    fontWeight: "600",
+                  }}
+                >
+                  RVK Educational Approach
+                </label>
+                <select
+                  value={rvkQ3Answer}
+                  onChange={(e) => setRvkQ3Answer(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    borderRadius: "6px",
+                    border: "1px solid #d1d5db",
+                    marginBottom: "20px",
+                  }}
+                >
+                  <option value="">Select the correct answer</option>
+                  <option value="wrong5">Only academic achievement</option>
+                  <option value="wrong6">Competitive ranking focus </option>
+                  <option value="holistic">
+                    Overall development of students through holistic education
+                  </option>
+                  <option value="wrong7">Focus on technology-driven learning only</option>
+                </select>
+
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "6px",
+                    fontWeight: "600",
+                  }}
+                >
+                  RVK Values
+                </label>
+                <select
+                  value={rvkQ4Answer}
+                  onChange={(e) => setRvkQ4Answer(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    borderRadius: "6px",
+                    border: "1px solid #d1d5db",
+                    marginBottom: "20px",
+                  }}
+                >
+                  <option value="">Select the correct answer</option>
+                  <option value="wrong8">Global professional corporate culture </option>
+                  <option value="wrong9">
+                    Excellent western educational practices
+                  </option>
+                  <option value="wrong10">Examination shortcuts</option>
+                  <option value="bharatiya_values">
+                    Traditional, social and cultural values rooted in Bharatiya
+                    heritage
+                  </option>
+                </select>
+              </>
+            )}
+
             <button type="submit" className="btn-orange">
               Start
             </button>
 
-            {/* Footer Text */}
             <p
               style={{
                 fontSize: "12px",
@@ -301,6 +396,7 @@ function Landing() {
               © {new Date().getFullYear()} Rashtrotthana Parishat. All rights
               reserved.
             </p>
+
             <p
               style={{
                 fontSize: "11px",
@@ -315,10 +411,7 @@ function Landing() {
         </div>
       </div>
 
-      {/* Toast for error messages */}
-      {toastMsg && (
-        <Toast message={toastMsg} onClose={() => setToastMsg("")} />
-      )}
+      {toastMsg && <Toast message={toastMsg} onClose={() => setToastMsg("")} />}
     </>
   );
 }

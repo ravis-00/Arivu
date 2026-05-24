@@ -458,14 +458,30 @@ nav a + a {
   text-align: center;
   font-size: 15px;
   color: #4b5563;
-  margin-bottom: 10px;
+  margin-bottom: 14px;
 }
 
 .certificate-name {
   text-align: center;
-  font-size: 24px;
+  font-family: "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  font-size: 40px;
+  font-style: italic;
   font-weight: 700;
-  margin-bottom: 8px;
+  color: #2C3B5C;
+  letter-spacing: 0.7px;
+  margin-bottom: 6px;
+}
+
+.certificate-name-underline {
+  width: 180px;
+  height: 2px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    #ea580c,
+    transparent
+  );
+  margin: 4px auto 14px;
 }
 
 .certificate-details {
@@ -520,6 +536,19 @@ nav a + a {
 .certificate-footer-role {
   font-size: 13px;
   color: #4b5563;
+}
+
+.certificate-qr-section {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.certificate-qr-text {
+  margin-top: 4px;
+  font-size: 10px;
+  color: #555;
 }
 
 /* Disclaimer text */

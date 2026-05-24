@@ -1,197 +1,472 @@
 // src/pages/Dashboard.jsx
-
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchDashboard } from "../api";
 
 function Dashboard() {
   const navigate = useNavigate();
-  const [rows, setRows] = useState([]);
+
+  const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [view, setView] = useState("overall");
   const [error, setError] = useState("");
 
   useEffect(() => {
-    async function load() {
+    async function loadDashboard() {
       try {
-        setLoading(true);
-        setError("");
-        const res = await fetchDashboard();
-        // Expecting res.summary or res.rows – fall back safely
-        const data =
-          res?.summary ||
-          res?.rows ||
-          res?.data ||
-          [];
+        const data = await fetchDashboard();
 
-        setRows(Array.isArray(data) ? data : []);
+        if (data.status !== "ok") {
+          setError("Unable to load dashboard data.");
+          return;
+        }
+
+        setSummary(data);
       } catch (err) {
         console.error(err);
-        setError("Unable to load dashboard data. Please try again later.");
+        setError("Unable to load dashboard data.");
       } finally {
         setLoading(false);
       }
     }
 
-    load();
+    loadDashboard();
   }, []);
 
-  // ---- Totals / Aggregates ----
-  const totals = rows.reduce(
-    (acc, row) => {
-      const tested = Number(row.employeesTested ?? row.totalTested ?? 0);
-      const passed = Number(row.passedEmployees ?? row.totalPassed ?? 0);
-      const avgAtt = Number(row.averageAttempts ?? row.avgAttempts ?? 0);
+  const rows = summary?.rows || [];
 
-      acc.tested += tested;
-      acc.passed += passed;
-      // for weighted average attempts
-      acc.attemptsWeightedSum += tested * avgAtt;
+  const rvkRows = useMemo(() => {
+    return rows.filter((r) =>
+      String(r.prakalpa || "").toUpperCase().includes("RVK")
+    );
+  }, [rows]);
 
-      return acc;
-    },
-    { tested: 0, passed: 0, attemptsWeightedSum: 0 }
-  );
+  const stateRows = useMemo(() => {
+    return rows.filter((r) =>
+      String(r.prakalpa || "").toUpperCase().includes("STATE BOARD")
+    );
+  }, [rows]);
 
-  const totalPassPct =
-    totals.tested > 0 ? (totals.passed / totals.tested) * 100 : 0;
+  const otherRows = useMemo(() => {
+    return rows.filter((r) => {
+      const prakalpa = String(r.prakalpa || "").toUpperCase();
+      return !prakalpa.includes("RVK") && !prakalpa.includes("STATE BOARD");
+    });
+  }, [rows]);
 
-  const totalAvgAttempts =
-    totals.tested > 0 ? totals.attemptsWeightedSum / totals.tested : 0;
+  function calculateTotals(dataRows) {
+    const employees = dataRows.reduce(
+      (sum, r) => sum + Number(r.employeesTested || 0),
+      0
+    );
+
+    const passed = dataRows.reduce(
+      (sum, r) => sum + Number(r.passedEmployees || 0),
+      0
+    );
+
+    const weightedAttempts = dataRows.reduce(
+      (sum, r) =>
+        sum + Number(r.averageAttempts || 0) * Number(r.employeesTested || 0),
+      0
+    );
+
+    return {
+      employees,
+      passed,
+      passPercentage: employees ? (passed / employees) * 100 : 0,
+      avgAttempts: employees ? weightedAttempts / employees : 0,
+    };
+  }
+
+  const overallRows = useMemo(() => {
+    const rvkTotal = calculateTotals(rvkRows);
+    const stateTotal = calculateTotals(stateRows);
+    const otherTotal = calculateTotals(otherRows);
+
+    const result = [];
+
+    if (rvkTotal.employees > 0) {
+      result.push({
+        group: "RVK CBSE Schools",
+        units: rvkRows.length,
+        employeesTested: rvkTotal.employees,
+        passedEmployees: rvkTotal.passed,
+        passPercentage: rvkTotal.passPercentage,
+        averageAttempts: rvkTotal.avgAttempts,
+      });
+    }
+
+    if (stateTotal.employees > 0) {
+      result.push({
+        group: "RV State Board Schools",
+        units: stateRows.length,
+        employeesTested: stateTotal.employees,
+        passedEmployees: stateTotal.passed,
+        passPercentage: stateTotal.passPercentage,
+        averageAttempts: stateTotal.avgAttempts,
+      });
+    }
+
+    if (otherTotal.employees > 0) {
+      result.push({
+        group: "Other Prakalpas",
+        units: otherRows.length,
+        employeesTested: otherTotal.employees,
+        passedEmployees: otherTotal.passed,
+        passPercentage: otherTotal.passPercentage,
+        averageAttempts: otherTotal.avgAttempts,
+      });
+    }
+
+    return result;
+  }, [rvkRows, stateRows, otherRows]);
+
+  const activeRows =
+    view === "rvk"
+      ? rvkRows
+      : view === "state"
+      ? stateRows
+      : view === "others"
+      ? otherRows
+      : rows;
+
+  const activeTotals =
+    view === "overall"
+      ? calculateTotals(rows)
+      : view === "rvk"
+      ? calculateTotals(rvkRows)
+      : view === "state"
+      ? calculateTotals(stateRows)
+      : calculateTotals(otherRows);
 
   if (loading) {
     return (
-      <div className="page-container">
-        <div className="card">
-          <p>Loading dashboard…</p>
-        </div>
+      <div style={{ textAlign: "center", padding: "40px" }}>
+        Loading dashboard...
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="page-container">
-        <div className="card">
-          <p style={{ color: "#b91c1c" }}>{error}</p>
-          <button
-            className="btn btn-secondary"
-            style={{ marginTop: "12px" }}
-            onClick={() => navigate("/login")}
-          >
-            Back
-          </button>
-        </div>
+      <div style={{ textAlign: "center", padding: "40px", color: "red" }}>
+        {error}
       </div>
     );
   }
 
   return (
-    <div className="page-container" style={{ background: "#f3f4f6" }}>
-      <div style={{ width: "100%" }}>
-        <h2
-          style={{
-            textAlign: "center",
-            marginBottom: "4px",
-            fontSize: "20px",
-          }}
+    <div
+      style={{
+        maxWidth: "1150px",
+        margin: "0 auto",
+        padding: "24px",
+        textAlign: "center",
+      }}
+    >
+      <h2 style={{ marginBottom: "6px" }}>
+        Process Awareness & Certification Results Dashboard
+      </h2>
+
+      <p style={{ color: "#6b7280", marginBottom: "20px" }}>
+        Summary by group - RVK schools, State Board schools and other
+        prakalpas
+      </p>
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          gap: "12px",
+          marginBottom: "20px",
+          flexWrap: "wrap",
+        }}
+      >
+        <button
+          onClick={() => setView("overall")}
+          style={tabButtonStyle(view === "overall")}
         >
-          Process Awareness &amp; Certification Results Dashboard
-        </h2>
-        <p
-          style={{
-            textAlign: "center",
-            fontSize: "13px",
-            color: "#6b7280",
-            marginBottom: "16px",
-          }}
+          Overall
+        </button>
+
+        <button
+          onClick={() => setView("rvk")}
+          style={tabButtonStyle(view === "rvk")}
         >
-          Summary by Prakalpa
-        </p>
+          RVK CBSE Schools
+        </button>
 
-        <table
-          className="dashboard-table"
-          style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            background: "#ffffff",
-            borderRadius: "12px",
-            overflow: "hidden",
-          }}
+        <button
+          onClick={() => setView("state")}
+          style={tabButtonStyle(view === "state")}
         >
-          <thead>
-            <tr>
-              <th>Prakalpa</th>
-              <th>School / Location</th>
-              <th>Employees Tested</th>
-              <th>Passed Employees</th>
-              <th>Pass Percentage</th>
-              <th>Average Attempts</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, idx) => {
-              const prakalpaName =
-                row.prakalpaName || row.prakalpa || row.name || "-";
+          RV State Board Schools
+        </button>
 
-              // FIX 1: show school / location from any available field
-              const schoolLocation =
-                row.schoolLocation ||
-                row.location ||
-                row.school ||
-                row.school_location ||
-                "-";
-
-              const tested = Number(row.employeesTested ?? row.totalTested ?? 0);
-              const passed = Number(row.passedEmployees ?? row.totalPassed ?? 0);
-
-              // FIX 2: format with 1 decimal
-              const passPctRaw =
-                row.passPercentage ?? row.passPercent ?? row.passPct ?? 0;
-              const passPct =
-                tested > 0
-                  ? Number(passPctRaw).toFixed(1)
-                  : "0.0";
-
-              const avgAttRaw =
-                row.averageAttempts ?? row.avgAttempts ?? row.avgAtt ?? 0;
-              const avgAtt = Number(avgAttRaw).toFixed(1);
-
-              return (
-                <tr key={idx}>
-                  <td>{prakalpaName}</td>
-                  <td>{schoolLocation}</td>
-                  <td>{tested}</td>
-                  <td>{passed}</td>
-                  <td>{passPct}</td>
-                  <td>{avgAtt}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-
-          {/* FIX 3: totals row */}
-          <tfoot>
-            <tr style={{ background: "#fef3c7", fontWeight: 600 }}>
-              <td colSpan={2}>Total</td>
-              <td>{totals.tested}</td>
-              <td>{totals.passed}</td>
-              <td>{totalPassPct.toFixed(1)}</td>
-              <td>{totalAvgAttempts.toFixed(1)}</td>
-            </tr>
-          </tfoot>
-        </table>
-
-        <div style={{ textAlign: "center", marginTop: "20px" }}>
-          <button
-            className="btn btn-secondary"
-            onClick={() => navigate("/login")}
-          >
-            Back
-          </button>
-        </div>
+        <button
+          onClick={() => setView("others")}
+          style={tabButtonStyle(view === "others")}
+        >
+          Other Prakalpas
+        </button>
       </div>
+
+      {view === "overall" ? (
+        <OverallTable rows={overallRows} />
+      ) : (
+        <DetailedTable rows={activeRows} view={view} />
+      )}
+
+      <TotalRow view={view} totals={activeTotals} />
+
+      <button
+        onClick={() => navigate(-1)}
+        style={{
+          marginTop: "24px",
+          padding: "10px 28px",
+          borderRadius: "20px",
+          border: "none",
+          background: "#e5e7eb",
+          fontWeight: "600",
+          cursor: "pointer",
+        }}
+      >
+        Back
+      </button>
     </div>
   );
 }
+
+function OverallTable({ rows }) {
+  return (
+    <table style={tableStyle}>
+      <thead>
+        <tr>
+          <th style={{ ...thStyle, width: "22%" }}>Group</th>
+          <th style={{ ...thNumberStyle, width: "14%" }}>Units / Schools</th>
+          <th style={{ ...thNumberStyle, width: "16%" }}>Employees Tested</th>
+          <th style={{ ...thNumberStyle, width: "16%" }}>Passed Employees</th>
+          <th style={{ ...thNumberStyle, width: "16%" }}>Pass Percentage</th>
+          <th style={{ ...thNumberStyle, width: "16%" }}>Average Attempts</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r, index) => (
+          <tr key={index}>
+            <td style={tdStyle}>{r.group}</td>
+            <td style={tdNumberStyle}>{r.units}</td>
+            <td style={tdNumberStyle}>{r.employeesTested}</td>
+            <td style={tdNumberStyle}>{r.passedEmployees}</td>
+            <td style={tdNumberStyle}>
+              {Number(r.passPercentage || 0).toFixed(1)}
+            </td>
+            <td style={tdNumberStyle}>
+              {Number(r.averageAttempts || 0).toFixed(1)}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function DetailedTable({ rows, view }) {
+  const isRVK = view === "rvk";
+  const isState = view === "state";
+
+  return (
+    <table style={tableStyle}>
+      <thead>
+        <tr>
+          {!isRVK && !isState && (
+            <th style={{ ...thStyle, width: "24%" }}>Prakalpa</th>
+          )}
+
+          <th
+            style={{
+              ...thStyle,
+              width: isRVK || isState ? "28%" : "24%",
+            }}
+          >
+            {isRVK
+              ? "RVK School"
+              : isState
+              ? "State Board School"
+              : "School / Location"}
+          </th>
+
+          <th style={{ ...thNumberStyle, width: isRVK || isState ? "18%" : "13%" }}>
+            Employees Tested
+          </th>
+          <th style={{ ...thNumberStyle, width: isRVK || isState ? "18%" : "13%" }}>
+            Passed Employees
+          </th>
+          <th style={{ ...thNumberStyle, width: isRVK || isState ? "18%" : "13%" }}>
+            Pass Percentage
+          </th>
+          <th style={{ ...thNumberStyle, width: isRVK || isState ? "18%" : "13%" }}>
+            Average Attempts
+          </th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {rows.map((r, index) => (
+          <tr key={index}>
+            {!isRVK && !isState && <td style={tdStyle}>{r.prakalpa}</td>}
+
+            <td style={tdStyle}>{r.location}</td>
+            <td style={tdNumberStyle}>{r.employeesTested}</td>
+            <td style={tdNumberStyle}>{r.passedEmployees}</td>
+            <td style={tdNumberStyle}>
+              {Number(r.passPercentage || 0).toFixed(1)}
+            </td>
+            <td style={tdNumberStyle}>
+              {Number(r.averageAttempts || 0).toFixed(1)}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function TotalRow({ view, totals }) {
+  if (view === "overall") {
+    return (
+      <table style={totalTableStyle}>
+        <tbody>
+          <tr>
+            <td style={{ ...totalCellStyle, width: "22%" }}>Total</td>
+            <td style={{ ...totalNumberCellStyle, width: "14%" }}>-</td>
+            <td style={{ ...totalNumberCellStyle, width: "16%" }}>
+              {totals.employees}
+            </td>
+            <td style={{ ...totalNumberCellStyle, width: "16%" }}>
+              {totals.passed}
+            </td>
+            <td style={{ ...totalNumberCellStyle, width: "16%" }}>
+              {totals.passPercentage.toFixed(1)}
+            </td>
+            <td style={{ ...totalNumberCellStyle, width: "16%" }}>
+              {totals.avgAttempts.toFixed(1)}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    );
+  }
+
+  if (view === "rvk" || view === "state") {
+    return (
+      <table style={totalTableStyle}>
+        <tbody>
+          <tr>
+            <td style={{ ...totalCellStyle, width: "28%" }}>Total</td>
+            <td style={{ ...totalNumberCellStyle, width: "18%" }}>
+              {totals.employees}
+            </td>
+            <td style={{ ...totalNumberCellStyle, width: "18%" }}>
+              {totals.passed}
+            </td>
+            <td style={{ ...totalNumberCellStyle, width: "18%" }}>
+              {totals.passPercentage.toFixed(1)}
+            </td>
+            <td style={{ ...totalNumberCellStyle, width: "18%" }}>
+              {totals.avgAttempts.toFixed(1)}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    );
+  }
+
+  return (
+    <table style={totalTableStyle}>
+      <tbody>
+        <tr>
+          <td style={{ ...totalCellStyle, width: "24%" }}>Total</td>
+          <td style={{ ...totalCellStyle, width: "24%" }}></td>
+          <td style={{ ...totalNumberCellStyle, width: "13%" }}>
+            {totals.employees}
+          </td>
+          <td style={{ ...totalNumberCellStyle, width: "13%" }}>
+            {totals.passed}
+          </td>
+          <td style={{ ...totalNumberCellStyle, width: "13%" }}>
+            {totals.passPercentage.toFixed(1)}
+          </td>
+          <td style={{ ...totalNumberCellStyle, width: "13%" }}>
+            {totals.avgAttempts.toFixed(1)}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  );
+}
+
+function tabButtonStyle(active) {
+  return {
+    padding: "10px 18px",
+    borderRadius: "20px",
+    border: active ? "none" : "1px solid #d1d5db",
+    background: active ? "#f45105" : "#ffffff",
+    color: active ? "#ffffff" : "#111827",
+    fontWeight: "600",
+    cursor: "pointer",
+  };
+}
+
+const tableStyle = {
+  width: "100%",
+  tableLayout: "fixed",
+  borderCollapse: "collapse",
+  background: "#ffffff",
+};
+
+const thStyle = {
+  padding: "12px",
+  borderBottom: "1px solid #e5e7eb",
+  background: "#f9fafb",
+  textAlign: "left",
+  fontWeight: "700",
+};
+
+const thNumberStyle = {
+  ...thStyle,
+  textAlign: "center",
+};
+
+const tdStyle = {
+  padding: "12px",
+  borderBottom: "1px solid #e5e7eb",
+  textAlign: "left",
+  wordBreak: "break-word",
+};
+
+const tdNumberStyle = {
+  ...tdStyle,
+  textAlign: "center",
+};
+
+const totalTableStyle = {
+  width: "100%",
+  tableLayout: "fixed",
+  borderCollapse: "collapse",
+  background: "#fff7cc",
+  fontWeight: "700",
+};
+
+const totalCellStyle = {
+  padding: "12px",
+  borderBottom: "1px solid #facc15",
+  textAlign: "left",
+};
+
+const totalNumberCellStyle = {
+  ...totalCellStyle,
+  textAlign: "center",
+};
 
 export default Dashboard;
