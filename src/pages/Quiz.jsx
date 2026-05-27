@@ -203,21 +203,25 @@ function Quiz() {
 
         <div className="quiz-options">
           {currentQuestion.options.map((opt, idx) => {
-            const selected = answers[currentQuestion.id] === idx;
-            return (
-              <label
-                key={idx}
-                className={
-                  "quiz-option" + (selected ? " quiz-option-selected" : "")
-                }
-              >
+            const questionKey = currentQuestion.id || currentIndex;
+
+const selected = answers[questionKey] === idx;
+
+return (
+  <label
+    key={idx}
+    className={
+      "quiz-option" + (selected ? " quiz-option-selected" : "")
+    }
+>
                 <input
-                  type="radio"
-                  name={`q-${currentQuestion.id}`}
-                  value={idx}
-                  checked={selected}
-                  onChange={() => handleOptionChange(idx)}
-                />
+                type="radio"
+                name={`q-${currentQuestion.id || currentIndex}`}
+                value={idx}
+                checked={selected === true}
+                onChange={() => handleOptionChange(idx)}
+                autoComplete="off"
+              />
                 {/* Only option text – no A/B/C/D prefix */}
                 <span className="option-label">{opt}</span>
               </label>

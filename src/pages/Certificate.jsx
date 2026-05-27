@@ -1,7 +1,7 @@
 // src/pages/Certificate.jsx
-import { useLocation } from "react-router-dom";
-import QRCode from "react-qr-code";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
+import QRCode from "react-qr-code";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -45,7 +45,10 @@ function getProgrammeTitle(prakalpaName) {
 
 function getAssessmentTitle(programmeTitle) {
   return String(programmeTitle || "Arivu – Process Awareness & Certification")
-    .replace("Process Awareness & Certification", "Process Awareness Assessment");
+    .replace(
+      "Process Awareness & Certification",
+      "Process Awareness Assessment"
+    );
 }
 
 function createReadableCertificateId(result) {
@@ -72,6 +75,8 @@ function createReadableCertificateId(result) {
 
 function Certificate() {
   const locationHook = useLocation();
+  const navigate = useNavigate();
+
   const [result, setResult] = useState(null);
 
   useEffect(() => {
@@ -93,6 +98,14 @@ function Certificate() {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleExit = () => {
+    sessionStorage.removeItem("arivuSession");
+    sessionStorage.removeItem("arivuQuestions");
+    sessionStorage.removeItem("arivuLastResult");
+
+    navigate("/", { replace: true });
   };
 
   const certificateId = useMemo(() => {
@@ -128,9 +141,10 @@ function Certificate() {
   const assessmentTitle = getAssessmentTitle(programmeTitle);
   const verificationId = result?.certificateNumber || certificateId;
 
-const verificationUrl = `https://arivu-process-awareness.netlify.app/verify?id=${encodeURIComponent(
-  verificationId
-)}`;
+  const verificationUrl = `https://arivu-process-awareness.netlify.app/verify?id=${encodeURIComponent(
+    verificationId
+  )}`;
+
   return (
     <div className="certificate-page">
       <div className="certificate-wrapper fade-in-up">
@@ -141,6 +155,14 @@ const verificationUrl = `https://arivu-process-awareness.netlify.app/verify?id=$
             onClick={handlePrint}
           >
             Print / Download PDF
+          </button>
+
+          <button
+            type="button"
+            className="btn-secondary certificate-exit-button"
+            onClick={handleExit}
+          >
+            Finish / Exit
           </button>
         </div>
 
@@ -219,20 +241,14 @@ const verificationUrl = `https://arivu-process-awareness.netlify.app/verify?id=$
                 <div className="certificate-footer-role">
                   System-generated e-certificate
                 </div>
+
                 <div className="certificate-qr-section">
-  <QRCode value={verificationUrl} size={58} />
-  <div className="certificate-qr-text">
-    Scan to Verify
-  </div>
-</div>
+                  <QRCode value={verificationUrl} size={58} />
+                  <div className="certificate-qr-text">Scan to Verify</div>
+                </div>
               </div>
             </div>
 
-          <div className="certificate-qr-section">
-
-  
-
-</div>
             <p className="certificate-disclaimer">
               This certificate is issued for internal process awareness and
               capacity-building within Rashtrotthana Parishat. It does not
